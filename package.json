@@ -9,7 +9,8 @@
     "discord.js": "^14.11.0",
     "irc-framework": "^4.13.1",
     "message-scheduler": "Supinic/message-scheduler#master",
-    "supi-core": "supinic/supi-core"
+    "prom-client": "^14.2.0",
+    "supi-core": "file:../supi-core"
   },
   "engines": {
     "node": ">= 16.0"

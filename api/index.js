@@ -26,36 +26,52 @@ module.exports = (function () {
 		const url = new URL(req.url, baseURL);
 		const path = url.pathname.split("/").filter(Boolean);
 
-		let target = definition[path[0]];
-		for (let i = 1; i < path.length; i++) {
-			target = target?.[path[i]];
-		}
+		// Metrics are a special case because their response should not be stringified
+		if (path[0] === "metrics") {
+			const headers = {
+				"Content-Type": sb.metrics.registry.contentType,
+			};
+			res.writeHead(200, headers);
+			res.end(await sb.metrics.registry.metrics());
+		} else {
+			let target = definition[path[0]];
 
-		if (!target) {
-			res.writeHead(404, { "Content-Type": "application/json" });
+			if (path.length > 1) {
+				for (let i = 1; i < path.length; i++) {
+					target = target?.[path[i]];
+				}
+			} else {
+				target = target?.["index"];
+			}
+
+
+			if (!target) {
+				res.writeHead(404, { "Content-Type": "application/json" });
+				res.end(JSON.stringify({
+					statusCode: 404,
+					data: null,
+					error: {
+						message: "Endpoint not found"
+					},
+					timestamp: Date.now()
+				}));
+
+				return;
+			}
+			else if (typeof target !== "function") {
+				throw new Error(`Internal API error - invalid definition for path ${path.join("/")}`);
+			}
+
+			const { error = null, data = null, headers = {}, statusCode = 200 } = await target(req, res, url);
+			res.writeHead(statusCode, headers);
 			res.end(JSON.stringify({
-				statusCode: 404,
-				data: null,
-				error: {
-					message: "Endpoint not found"
-				},
+				statusCode,
+				data,
+				error,
 				timestamp: Date.now()
 			}));
-
-			return;
-		}
-		else if (typeof target !== "function") {
-			throw new Error(`Internal API error - invalid definition for path ${path.join("/")}`);
 		}
 
-		const { error = null, data = null, headers = {}, statusCode = 200 } = await target(req, res, url);
-		res.writeHead(statusCode, headers);
-		res.end(JSON.stringify({
-			statusCode,
-			data,
-			error,
-			timestamp: Date.now()
-		}));
 	});
 
 	server.listen(port);

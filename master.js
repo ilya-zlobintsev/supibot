@@ -96,6 +96,7 @@ catch {
 		console.debug(`Platform ${platformData.Name} loaded successfully.`);
 	}
 
+	sb.metrics = require("./metrics");
 	sb.API = require("./api");
 
 	sb.Platform.assignControllers(controllers);
